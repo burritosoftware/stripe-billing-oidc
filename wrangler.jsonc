@@ -1,47 +1,32 @@
-/**
- * For more details on how to configure Wrangler, refer to:
- * https://developers.cloudflare.com/workers/wrangler/configuration/
- */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "stripe-billing-oidc",
+	"vars": {
+		// From your identity provider
+    "OIDC_ISSUER_URL": "https://sso.riiconnect24.net/application/o/stripe-billing/",
+    "OIDC_CLIENT_ID": "WGeFJPIY6fka8Otz4wXpNyuFM6Z2A5ZCuqfj0JbR",
+		"OIDC_REDIRECT_URI": "https://billing.wiilink.ca/callback", // Make sure this is your Worker's host + /callback
+		// From Stripe
+		"STRIPE_CUSTOMER_PORTAL_LINK": "https://billing.stripe.com/p/login/6oEcOQfbF6td9cA000"
+  },
+	"routes": [
+    {
+      "pattern": "billing.wiilink.ca", // Use a custom domain if you want (not needed if you wanna use workers.dev)
+      "custom_domain": true
+    }
+  ],
 	"main": "src/index.ts",
+	"compatibility_flags": [
+    "nodejs_compat"
+  ],
 	"compatibility_date": "2025-06-07",
 	"observability": {
 		"enabled": true
-	}
-	/**
-	 * Smart Placement
-	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
-	 */
-	// "placement": { "mode": "smart" },
-
-	/**
-	 * Bindings
-	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
-	 * databases, object storage, AI inference, real-time communication and more.
-	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
-	 */
-
-	/**
-	 * Environment Variables
-	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
-	 */
-	// "vars": { "MY_VARIABLE": "production_value" },
-	/**
-	 * Note: Use secrets to store sensitive data.
-	 * https://developers.cloudflare.com/workers/configuration/secrets/
-	 */
-
-	/**
-	 * Static Assets
-	 * https://developers.cloudflare.com/workers/static-assets/binding/
-	 */
-	// "assets": { "directory": "./public/", "binding": "ASSETS" },
-
-	/**
-	 * Service Bindings (communicate between multiple Workers)
-	 * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
-	 */
-	// "services": [{ "binding": "MY_SERVICE", "service": "my-service" }]
+	},
+	"kv_namespaces": [
+    {
+      "binding": "LOGIN_STATE_KV",
+      "id": "ab6de05b442f49fe91d94148d70fd700" // Make sure to change this with your own namespace ID
+    }
+	]
 }
