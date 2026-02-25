@@ -22,11 +22,5 @@
 	"compatibility_date": "2025-06-07",
 	"observability": {
 		"enabled": true
-	},
-	"kv_namespaces": [
-    {
-      "binding": "LOGIN_STATE_KV",
-      "id": "ab6de05b442f49fe91d94148d70fd700" // Make sure to change this with your own namespace ID
-    }
-	]
+	}
 }

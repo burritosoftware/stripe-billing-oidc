@@ -2,7 +2,6 @@ import * as client from 'openid-client';
 import Stripe from 'stripe';
 
 interface Env {
-	LOGIN_STATE_KV: KVNamespace;
 	OIDC_ISSUER_URL: string;
 	OIDC_CLIENT_ID: string;
 	OIDC_CLIENT_SECRET: string;
@@ -32,11 +31,12 @@ export default {
 			const state = query.get('state');
 			if (!state) return new Response('Missing state', { status: 400 });
 
-			const saved = (await env.LOGIN_STATE_KV.get(state, 'json')) as { codeVerifier: string } | null;
-			if (!saved) return new Response('Invalid or expired state', { status: 400 });
+			const cookieHeader = request.headers.get('Cookie') || '';
+			const sessionMatch = cookieHeader.match(/oidc_session=([^;]+)/);
+			if (!sessionMatch) return new Response('Missing or expired session', { status: 400 });
 
-			const { codeVerifier } = saved;
-			await env.LOGIN_STATE_KV.delete(state);
+			const [savedState, codeVerifier] = sessionMatch[1].split(':');
+			if (state !== savedState) return new Response('Invalid state', { status: 400 });
 
 			const tokens = await client.authorizationCodeGrant(issuer, url, {
 				pkceCodeVerifier: codeVerifier,
@@ -100,9 +100,6 @@ export default {
 		// Login Flow Initiation
 		const codeVerifier = client.randomPKCECodeVerifier();
 		const state = crypto.randomUUID();
-		await env.LOGIN_STATE_KV.put(state, JSON.stringify({ codeVerifier }), {
-			expirationTtl: 300, // ⏱️ expires in 5 minutes
-		});
 
 		const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
 		const authUrl = client.buildAuthorizationUrl(issuer, {
@@ -113,6 +110,12 @@ export default {
 			state,
 		});
 
-		return Response.redirect(authUrl.href, 302);
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: authUrl.href,
+				'Set-Cookie': `oidc_session=${state}:${codeVerifier}; HttpOnly; Secure; Max-Age=300; Path=/; SameSite=Lax`
+			}
+		});
 	},
 } satisfies ExportedHandler<Env>;
